@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>${project_name} — AI Assistant</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0f172a;
+      --panel: rgba(15, 23, 42, 0.9);
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --accent: #22d3ee;
+      --border: rgba(148, 163, 184, 0.22);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+      color: var(--text);
+      background: linear-gradient(135deg, #020617 0%, #0f172a 55%, #111827 100%);
+      padding: 40px 20px;
+    }
+    .shell {
+      max-width: 640px;
+      margin: 0 auto;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 32px;
+    }
+    h1 { font-size: 1.6rem; margin-top: 0; }
+    p.lede { color: var(--muted); }
+    fieldset {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 20px;
+      padding: 16px;
+    }
+    legend { color: var(--muted); padding: 0 6px; }
+    label { display: block; font-size: 0.85rem; color: var(--muted); margin-top: 10px; }
+    input {
+      width: 100%;
+      padding: 10px 12px;
+      margin-top: 4px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text);
+      font-size: 1rem;
+    }
+    #chat {
+      margin-top: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-height: 320px;
+      overflow-y: auto;
+    }
+    .msg { padding: 12px 14px; border-radius: 12px; line-height: 1.5; }
+    .msg.user { background: rgba(34, 211, 238, 0.14); align-self: flex-end; }
+    .msg.assistant { background: rgba(255, 255, 255, 0.05); }
+    form { display: flex; gap: 10px; margin-top: 20px; }
+    button {
+      padding: 12px 20px;
+      border: none;
+      border-radius: 10px;
+      background: var(--accent);
+      color: #022c3a;
+      font-weight: 600;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <h1>${project_name}</h1>
+    <p class="lede">Custom UI backed by the Application, which authenticates
+      you, exchanges your identity token for a trusted token, assumes a
+      scoped IAM role via AWS STS, and calls the AI assistant's chat sync API
+      on your behalf using the Amazon SDK.</p>
+
+    <fieldset>
+      <legend>Sign in (Authentication)</legend>
+      <label for="username">Username</label>
+      <input id="username" type="text" placeholder="jane" />
+      <label for="password">Password</label>
+      <input id="password" type="password" placeholder="Passw0rd!" />
+    </fieldset>
+
+    <div id="chat"></div>
+
+    <form id="chat-form">
+      <input id="prompt" type="text" placeholder="Ask the AI assistant something…" />
+      <button type="submit">Send</button>
+    </form>
+  </div>
+
+  <script>
+    const chat = document.getElementById("chat");
+    const form = document.getElementById("chat-form");
+    const promptInput = document.getElementById("prompt");
+    const usernameInput = document.getElementById("username");
+    const passwordInput = document.getElementById("password");
+
+    function appendMessage(role, text) {
+      const div = document.createElement("div");
+      div.className = "msg " + role;
+      div.textContent = text;
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const prompt = promptInput.value.trim();
+      if (!prompt) return;
+
+      appendMessage("user", prompt);
+      promptInput.value = "";
+
+      try {
+        const res = await fetch(window.location.href, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            username: usernameInput.value,
+            password: passwordInput.value,
+            prompt: prompt,
+          }),
+        });
+        const data = await res.json();
+        appendMessage("assistant", data.answer || data.error || "(no response)");
+      } catch (err) {
+        appendMessage("assistant", "Error: " + err.message);
+      }
+    });
+  </script>
+</body>
+</html>
